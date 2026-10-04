@@ -1,0 +1,49 @@
+name: Build Homebrew Launcher
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: devkitpro/devkita64:latest
+      options: --user root
+
+    env:
+      DEVKITPRO: /opt/devkitpro
+      DEVKITA64: /opt/devkitpro/devkitA64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Add toolchain to PATH
+        run: |
+          echo "/opt/devkitpro/devkitA64/bin" >> "$GITHUB_PATH"
+          echo "/opt/devkitpro/tools/bin" >> "$GITHUB_PATH"
+
+      - name: Verify toolchain
+        run: |
+          export PATH="/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin:$PATH"
+          which aarch64-none-elf-g++
+          aarch64-none-elf-g++ --version
+          which elf2nro
+
+      - name: Build
+        run: |
+          export PATH="/opt/devkitpro/devkitA64/bin:/opt/devkitpro/tools/bin:$PATH"
+          make clean
+          make
+          test -f HBL.nro
+          ls -lh HBL.nro
+
+      - name: Upload NRO
+        uses: actions/upload-artifact@v4
+        with:
+          name: Homebrew Launcher
+          path: HBL.nro
+          if-no-files-found: error
+          retention-days: 30
